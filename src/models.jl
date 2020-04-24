@@ -1,6 +1,27 @@
 using Printf
 
 """
+    State(size::Int, coords::Matrix{T}, forces::Matrix{T}) where {T <: AbstractFloat}
+
+        Holds informating regarding the current coordinates and forces on a
+        particle system with a given 'size'
+
+    Example:
+
+        state = State(2, [1.0 2.0 3.0; 0.0 0.0 0.0], zeros(3, 2))
+"""
+struct State{T <: AbstractFloat}
+    size::Int
+    coords::Matrix{T}
+    forces::Matrix{T}
+end
+
+# TODO: State.coords and State.forces should be verified to be in the same
+# format (AoS vs Soa) (?)
+# TODO: State.size should be verified to be the max(size(coords)..) (?)
+
+
+"""
     LATTICE
 
     Defines a lattice type. Supported lattice types include 'primitive',
@@ -118,8 +139,8 @@ function generate_lattice(sizes::Vector{Float64}, rep::Vector{Int64},
     @assert size(rep) == (3,) "rep argument must be a 3x1 Array{Int64, 1}"
 
     # Generate the template
-    cell_sizes = (sizes./rep)
-    template = generate_template(cell_sizes, type)
+    cs = (sizes./rep)
+    template = generate_template(cs, type)
 
     # Create empty list of atoms
     n_atoms  = calculate_n_atoms(rep, type)
@@ -131,7 +152,7 @@ function generate_lattice(sizes::Vector{Float64}, rep::Vector{Int64},
         for j in 0:rep[2]
             for k in 0:rep[3]
                 for index in 1:size(template, 1)
-                    new_pos = template[index, :] .+ [i*f[1], j*f[2], k*f[3]]
+                    new_pos = template[index, :] .+ [i*cs[1], j*cs[2], k*cs[3]]
                     if all(new_pos .<= sizes)
                         xyz[1:3, c] .= new_pos
                         c +=1
