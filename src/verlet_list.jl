@@ -81,10 +81,12 @@ end
 
         update_serial!(vl, xyz)
 """
-function update_serial!(vlist::VerletList, coords::Matrix{T}) where {T <: AbstractFloat}
+function update_serial!(vlist::VerletList, coords::Matrix{T}) where {T<:AbstractFloat}
     
     @assert vlist.size == max(size(coords)...) "incompatible sizes"
+    # println(size(coords))
 
+    # cutoff squared
     cutsq = convert(T, vlist.cutoff*vlist.cutoff)
     
     offset = 1
@@ -92,12 +94,13 @@ function update_serial!(vlist::VerletList, coords::Matrix{T}) where {T <: Abstra
     @inbounds for i = 1:natoms
 
         vlist.offset[i] = offset
-        @nexprs 3 u -> xi_u = get_coords(coords, u, i)
+        # @nexprs 3 u -> xi_u = coords[i,u]
+        @nexprs 3 u -> xi_u = coords[u,i]
 
         for j = (i+1):natoms
 
-            @nexprs 3 u -> vij_u = get_coords(coords, u, j) - xi_u
-
+            @nexprs 3 u -> vij_u = coords[u,j] - xi_u
+            # @nexprs 3 u -> vij_u = coords[j,u] - xi_u
             dij_sq = @reduce 3 (+) u -> vij_u*vij_u
             
             if dij_sq < cutsq
