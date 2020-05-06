@@ -1,27 +1,6 @@
 using Printf
 
 """
-    State(size::Int, coords::Matrix{T}, forces::Matrix{T}) where {T <: AbstractFloat}
-
-        Holds informating regarding the current coordinates and forces on a
-        particle system with a given 'size'
-
-    Example:
-
-        state = State(2, [1.0 2.0 3.0; 0.0 0.0 0.0], zeros(3, 2))
-"""
-struct State{T <: AbstractFloat}
-    size::Int
-    coords::Matrix{T}
-    forces::Matrix{T}
-end
-
-# TODO: State.coords and State.forces should be verified to be in the same
-# format (AoS vs Soa) (?)
-# TODO: State.size should be verified to be the max(size(coords)..) (?)
-
-
-"""
     LATTICE
 
     Defines a lattice type. Supported lattice types include 'primitive',
