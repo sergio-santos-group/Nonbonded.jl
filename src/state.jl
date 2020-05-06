@@ -1,5 +1,8 @@
 abstract type AbstractMatrix end
 
+Base.getindex(M::AbstractMatrix, i::UnitRange{Int}) = M.values[i]
+Base.length(M::AbstractMatrix) = length(M.values)
+
 """
     AoSMatrix(values::Matrix{T}) where {T <: AbstractFloat} <: AbstractMatrix
 
@@ -50,10 +53,10 @@ mutable struct State{T <: AbstractFloat}
         if size(coords) != size(forces)
             error("Size of coords does not match size of forces")
         end
-        if argmin(collect(size(coords))) == 1
+        if argmin(collect(size(coords))) == 2
             println("Creating state in AoS format")
             new{T}(max(size(coords)...), AoSMatrix(coords), AoSMatrix(forces))
-        elseif argmin(collect(size(coords))) == 2
+        elseif argmin(collect(size(coords))) == 1
             println("Creating state in SoA format")
             new{T}(max(size(coords)...), SoAMatrix(coords), SoAMatrix(forces))
         else

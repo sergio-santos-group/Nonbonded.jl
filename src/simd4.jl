@@ -25,9 +25,9 @@ using SIMD
 """
 @generated function simd4_no_verlet_AoS(state::State{T}, cutoff::T, ::Type{Val{DoF}}) where {DoF, T <: AbstractFloat}
     quote
-        coords = view(state.coords, :)
-        forces = view(state.forces, :)
-        natoms = state.size
+        coords = view(state.coords.values, :)
+        forces = view(state.forces.values, :)
+        natoms = state.n
 
         cutsq = convert(T, cutoff*cutoff)   # squared cutoff
         energy = T(0)                       # total energy
@@ -99,17 +99,17 @@ end
         σ = T(1)
         ϵ = ones(T, N)
         energy = T(0)
-        natoms = state.size
+        natoms = state.n
     
         mlane = VecRange{N}(1)  # mask lane = vload(Vec{4, Float64}, X, 1)
-        coords = view(state.coords, :) # Creates x1,y1,z1,x2,y2,z2,x3,y3,z3,...
+        coords = view(state.coords.values, :) # Creates x1,y1,z1,x2,y2,z2,x3,y3,z3,...
         cutsq = convert(T, vlist.cutoff*vlist.cutoff)
         
         #region FORCE_SECTION
         $(if Forces === true
             quote
                 flane = VecRange{4}(0)
-                forces = view(state.forces, :)
+                forces = view(state.forces.values, :)
             end
         end)
         #endregion FORCE_SECTION
