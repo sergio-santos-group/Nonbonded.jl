@@ -12,9 +12,9 @@ mutable struct AoSMatrix{T <: AbstractFloat} <: AbstractMatrix
     values::Matrix{T}
 end
 
-Base.getindex(M::AoSMatrix{T}, i::Int) where {T <: AbstractFloat} = M.values[i, :]
-Base.getindex(M::AoSMatrix{T}, i::Int, j::Int) where {T <: AbstractFloat} = M.values[i, j]
-Base.setindex!(M::AoSMatrix{T}, v, i::Int, j::Int) where {T <: AbstractFloat} = setindex!(M.values, v, i, j)
+Base.getindex(M::AoSMatrix{T}, i::Int) where {T <: AbstractFloat} = M.values[:, i]
+Base.getindex(M::AoSMatrix{T}, i::Int, j::Int) where {T <: AbstractFloat} = M.values[j, i]
+Base.setindex!(M::AoSMatrix{T}, v, i::Int, j::Int) where {T <: AbstractFloat} = setindex!(M.values, v, j, i)
 
 
 """
@@ -26,9 +26,9 @@ mutable struct SoAMatrix{T <: AbstractFloat} <: AbstractMatrix
     values::Matrix{T}
 end
 
-Base.getindex(M::SoAMatrix{T}, i::Int) where {T <: AbstractFloat} = M.values[:, i]
-Base.getindex(M::SoAMatrix{T}, i::Int, j::Int) where {T <: AbstractFloat} = M.values[j, i]
-Base.setindex!(M::SoAMatrix{T}, v, i::Int, j::Int) where {T <: AbstractFloat} = setindex!(M.values, v, j, i)
+Base.getindex(M::SoAMatrix{T}, i::Int) where {T <: AbstractFloat} = M.values[i, :]
+Base.getindex(M::SoAMatrix{T}, i::Int, j::Int) where {T <: AbstractFloat} = M.values[i, j]
+Base.setindex!(M::SoAMatrix{T}, v, i::Int, j::Int) where {T <: AbstractFloat} = setindex!(M.values, v, i, j)
 
 
 """
@@ -53,10 +53,10 @@ mutable struct State{T <: AbstractFloat}
         if size(coords) != size(forces)
             error("Size of coords does not match size of forces")
         end
-        if argmin(collect(size(coords))) == 2
+        if argmax(collect(size(coords))) == 2
             println("Creating state in AoS format")
             new{T}(max(size(coords)...), AoSMatrix(coords), AoSMatrix(forces))
-        elseif argmin(collect(size(coords))) == 1
+        elseif argmax(collect(size(coords))) == 1
             println("Creating state in SoA format")
             new{T}(max(size(coords)...), SoAMatrix(coords), SoAMatrix(forces))
         else
