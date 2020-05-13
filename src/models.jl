@@ -79,9 +79,11 @@ end
         a specific 'type'. Supported lattice types include 'primitive',
         'body_centered' and 'face_centered' lattices.
 
-        Returns a Matrix{Float64} in Array of Structures (AoS) format. Use
-        'convert function to change the content type.
+        Returns a Matrix{Float64} in Array of Structures (AoS) format.
+        Use 'convert' function to change the content type.
         Ex: convert(Matrix{Float32}, array)
+        Use 'collect' function with the transpose to change the format to SoA.
+        Ex: collect(array')
 
     Example:
 
