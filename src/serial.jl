@@ -59,7 +59,7 @@ end
 	
         serial_no_verlet(state, 1.2, Val{true})
 """
-@generated function serial(state::State{T}, cutoff::T, ::Type{Val{DoF}}) where {DoF, T <: AbstractFloat}
+@generated function serial(state::State{F, T}, cutoff::T, ::Type{Val{DoF}}) where {DoF, F <: AbstractMatrix, T <: AbstractFloat}
     quote
         coords = state.coords
         forces = state.forces
@@ -124,7 +124,7 @@ end
 end
 
 
-@generated function serial(state::State{T}, vlist::VerletList, ::Type{Val{DoF}}) where {DoF, T <: AbstractFloat}
+@generated function serial(state::State{F, T}, vlist::VerletList, ::Type{Val{DoF}}) where {DoF, F <: AbstractMatrix, T <: AbstractFloat}
     quote
         coords = state.coords
         forces = state.forces

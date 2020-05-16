@@ -1,7 +1,7 @@
 module LennardJones
 
 export generate_cubic_lattice, generate_lattice, LATTICE, State, VerletList,
-       update_serial!, serial, simd
+       update_serial!, serial, simd, simd_aos_sergio
 
 const FORCES = Val{true}
 const NOFORCES = Val{false}
