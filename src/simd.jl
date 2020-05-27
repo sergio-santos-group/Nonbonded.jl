@@ -64,6 +64,11 @@ using SIMD
     
             j = i+1
             while j+N <= natoms
+                if j+N <= natoms && j != i+1
+                    j += N # Do the next N atoms
+                else
+                    break
+                end
                 
                 if typeof(state.coords) == AoSMatrix{Float32}
                     # @nexprs $N u -> println(j+(u-1))
@@ -126,13 +131,6 @@ using SIMD
                     end
                 end)
                 #endregion FORCE_SECTION
-    
-                if j+N <= natoms
-                    j += N # Do the next N atoms
-                else
-                    break
-                end
-
             end # while ptr
             
 
