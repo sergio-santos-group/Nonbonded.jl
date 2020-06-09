@@ -5,7 +5,7 @@ using SIMD
 
     @assert isa(Forces, Bool) "Forces must be a boolean"
     # @assert T==Float32 "only Float32 is currently supported"
-    @assert N ∈ (4,8) "only 4 or 8 wide Float32 vectors are allowed"
+    @assert N ∈ (4,8) "only 4 or 8 wide vectors are allowed"
 
     quote
     
@@ -66,23 +66,18 @@ using SIMD
                 end
             end)
     
-            j = i+1
+            j = i
             while j+N <= natoms
-                if j+N <= natoms && j != i+1
-                    j += N # Do the next N atoms
-                else
-                    break
-                end
                 
                 $(if F == AoS
                     quote
                         # @nexprs $N u -> println(j+(u-1))
-                        @nexprs $N u ->  j_u = ((j+u-1)<<1) + (j+u-3)
+                        @nexprs $N u ->  j_u = ((j+u)<<1) + (j+u-2)
                         @nexprs $N u -> vi_u = vload(Vec{4,T}, coords, j_u) - vi    # xi1, yi1, zi1, wi1
                     end
                 else
                     quote
-                        @nexprs $N u ->  js_u = Vec((j+(u-1), j+(u-1)+natoms, j+(u-1)+2*natoms, j+(u-1)))
+                        @nexprs $N u ->  js_u = Vec((j+u, j+u+natoms, j+u+2*natoms, j+u))
                         @nexprs $N u -> vi_u = vgather(coords, js_u) - vi    # xi1, yi1, zi1, wi1
                     end
                 end)
@@ -138,6 +133,14 @@ using SIMD
                         end
                     end
                 end)
+
+                # if j+N <= natoms && j != i+1
+                if j+N <= natoms
+                    j += N # Do the next N atoms
+                    # println("$i vs [")
+                else
+                    break
+                end
                 #endregion FORCE_SECTION
             end # while ptr
             

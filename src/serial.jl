@@ -12,23 +12,23 @@ using Base.Cartesian
 	
         naive(state, 1.2, true)
 """
-function naive(state::State{T}, cutoff::T, do_forces::Bool) where {T <: AbstractFloat}
+function naive(state::State{F, T}, cutoff::T, do_forces::Bool) where {F <: AbstractMatrix, T <: AbstractFloat}
     coords    = state.coords
     forces    = state.forces
     energy    = T(0)
     cutoff_sq = cutoff^2
-    for i in 1:3:length(coords)
-        for j in (i+3):3:length(coords)
-            if do_forces
-                forces[1:1+2] = zeros(3, 1)
-                fi = zeros(3, 1)
-            end
-            rij = coords[i:i+2] - coords[j:j+2]
+    for i in 1:(length(coords) - 1)
+        if do_forces
+            forces[i] = zeros(3, 1) # ERROR
+            fi = zeros(3, 1) # ERROR
+        end
+        for j in (i+1):length(coords)
+            rij = coords[i] - coords[j]
             dij_sq = sum(rij.^2)
             if dij_sq < cutoff_sq
                 lj2 = T(1) / dij_sq
                 lj6 = lj2*lj2*lj2
-                energy += sum(Float32(1)*(lj6*lj6 - lj6))
+                energy += T(1)*(lj6*lj6 - lj6)
 
                 if do_forces
                     fc = T(24) * (lj6 - T(2) * lj6 * lj6) / dij_sq
@@ -165,7 +165,7 @@ end
                 # calculate the squared distance. Skip
                 # if greater than cutoff
                 dij_sq = @reduce 3 (+) u -> rij_u*rij_u
-                (dij_sq > cutsq) && continue
+                # (dij_sq > cutsq) && continue
                 
                 # LJ potential
                 lj2 = σ/dij_sq

@@ -95,11 +95,11 @@ function update_serial!(vlist::VerletList, coords::Matrix{T}) where {T<:Abstract
 
         vlist.offset[i] = offset
         # @nexprs 3 u -> xi_u = coords[i,u]
-        @nexprs 3 u -> xi_u = coords[u,i]
+        @nexprs 3 u -> xi_u = coords[i, u]
 
         for j = (i+1):natoms
 
-            @nexprs 3 u -> vij_u = coords[u,j] - xi_u
+            @nexprs 3 u -> vij_u = coords[j, u] - xi_u
             # @nexprs 3 u -> vij_u = coords[j,u] - xi_u
             dij_sq = @reduce 3 (+) u -> vij_u*vij_u
             
