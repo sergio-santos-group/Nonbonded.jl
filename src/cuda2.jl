@@ -55,9 +55,34 @@ function cuda_kernel(coords::CuDeviceVector{T}, energy::CuDeviceMatrix{T}, n::In
 end
 
 
+function cuda_kernel2(coords::CuDeviceMatrix{T}, n::Int) where {T <: AbstractFloat}
+    # Note: Example coords are is SoA format
+
+    thread_id          = threadIdx().x
+    n_threads_in_block = blockDim().x
+    i                  = blockIdx().y
+    j                  = (blockIdx().x - 1) * n_threads_in_block + thread_id
+
+    cache = @cuDynamicSharedMem(T, 512)
+    
+    if i <= n && j <= n && i < j
+        # 1. Calculate distance
+        dijx    = coords[i] - coords[j]
+        dijx_sq = dijx * dijx
+        dijy    = coords[i+n] - coords[j+n]
+        dijy_sq = dijy * dijy
+        dijz    = coords[i+2*n] - coords[j+2*n]
+        dijz_sq = dijz * dijz
+        dij_sq  = dijx_sq + dijy_sq + dijz_sq
+    end
+
+    return
+end
+
+
 function cuda(state::State{F, T}) where {F <: AbstractMatrix, T <: AbstractFloat}
     
-    coords = CuArray(view(state.coords.values, :)) # Test is in SoA
+    coords = CuArray(state.coords.values) # Test is in SoA
     
     # Define the configuration
     dev           = device()
@@ -65,9 +90,7 @@ function cuda(state::State{F, T}) where {F <: AbstractMatrix, T <: AbstractFloat
     threads       = (total_threads, )
     blocks        = (ceil(Int, state.n / total_threads), state.n)
     shmem         = 512 * sizeof(T)
-    
-    energy = CuArray(zeros(T, blocks))
-    
-    @cuda blocks = blocks threads = threads shmem = shmem cuda_kernel(coords, energy, state.n)
-    return sum(energy)
+        
+    @cuda blocks = blocks threads = threads shmem = shmem cuda_kernel2(coords, state.n)
+    return 0.0
 end

@@ -1,5 +1,5 @@
 using SIMD
-
+using Base.Cartesian
 
 @generated function simd(state::State{F, T}, cutoff::T, ::Type{Val{Forces}}, ::Type{Vec{N,T}}) where {Forces, N, T<:AbstractFloat, F <: AbstractMatrix}
 
@@ -84,37 +84,44 @@ using SIMD
                 
                 $(if N==4
                     quote
-                        vs12_m1 = shufflevector(vi_1, vi_2, Val{m1})        # xi1, xi2, yi1, yi2
-                        vs34_m1 = shufflevector(vi_3, vi_4, Val{m1})        # xi3, xi4, yi3, yi4
-                        vs12_m2 = shufflevector(vi_1, vi_2, Val{m2})        # zi1, zi2, ?i1, ?i2
-                        vs34_m2 = shufflevector(vi_3, vi_4, Val{m2})        # zi3, zi4, ?i3, ?i4
+                        vs12_m1 = shufflevector(vi_1, vi_2, Val(m1))        # xi1, xi2, yi1, yi2
+                        vs34_m1 = shufflevector(vi_3, vi_4, Val(m1))        # xi3, xi4, yi3, yi4
+                        vs12_m2 = shufflevector(vi_1, vi_2, Val(m2))        # zi1, zi2, ?i1, ?i2
+                        vs34_m2 = shufflevector(vi_3, vi_4, Val(m2))        # zi3, zi4, ?i3, ?i4
                         
-                        xij = shufflevector(vs12_m1, vs34_m1, Val{mx})      # xi1, xi2, xi3, xi4
-                        yij = shufflevector(vs12_m1, vs34_m1, Val{my})      # yi1, yi2, yi3, yi4
-                        zij = shufflevector(vs12_m2, vs34_m2, Val{mx})      # zi1, zi2, zi3, zi4
+                        xij = shufflevector(vs12_m1, vs34_m1, Val(mx))      # xi1, xi2, xi3, xi4
+                        yij = shufflevector(vs12_m1, vs34_m1, Val(my))      # yi1, yi2, yi3, yi4
+                        zij = shufflevector(vs12_m2, vs34_m2, Val(mx))      # zi1, zi2, zi3, zi4
                     end
                 else
                     quote
-                        vi12 = shufflevector(vi_1, vi_2, Val{mj})           # xi1, yi1, zi1, wi1, xi2, yi2, zi2, wi2
-                        vi34 = shufflevector(vi_3, vi_4, Val{mj})           # xi3, yi3, zi3, wi3, xi4, yi4, zi4, wi4
-                        vi56 = shufflevector(vi_5, vi_6, Val{mj})           # xi5, yi5, zi5, wi5, xi6, yi6, zi6, wi6
-                        vi78 = shufflevector(vi_7, vi_8, Val{mj})           # xi7, yi7, zi7, wi7, xi8, yi8, zi8, wi8
+                        vi12 = shufflevector(vi_1, vi_2, Val(mj))           # xi1, yi1, zi1, wi1, xi2, yi2, zi2, wi2
+                        vi34 = shufflevector(vi_3, vi_4, Val(mj))           # xi3, yi3, zi3, wi3, xi4, yi4, zi4, wi4
+                        vi56 = shufflevector(vi_5, vi_6, Val(mj))           # xi5, yi5, zi5, wi5, xi6, yi6, zi6, wi6
+                        vi78 = shufflevector(vi_7, vi_8, Val(mj))           # xi7, yi7, zi7, wi7, xi8, yi8, zi8, wi8
                     
 
-                        vs1234_m1 = shufflevector(vi12, vi34, Val{m1})      # xi1, xi2, xi3, xi4, yi1, yi2, yi3, yi4
-                        vs5678_m1 = shufflevector(vi56, vi78, Val{m1})      # xi5, xi6, xi7, xi8, yi5, yi6, yi7, yi8
-                        vs1234_m2 = shufflevector(vi12, vi34, Val{m2})      # zi1, zi2, zi3, zi4, wi1, wi2, wi3, wi4
-                        vs5678_m2 = shufflevector(vi56, vi78, Val{m2})      # zi5, zi6, zi7, zi8, wi5, wi6, wi7, wi8
+                        vs1234_m1 = shufflevector(vi12, vi34, Val(m1))      # xi1, xi2, xi3, xi4, yi1, yi2, yi3, yi4
+                        vs5678_m1 = shufflevector(vi56, vi78, Val(m1))      # xi5, xi6, xi7, xi8, yi5, yi6, yi7, yi8
+                        vs1234_m2 = shufflevector(vi12, vi34, Val(m2))      # zi1, zi2, zi3, zi4, wi1, wi2, wi3, wi4
+                        vs5678_m2 = shufflevector(vi56, vi78, Val(m2))      # zi5, zi6, zi7, zi8, wi5, wi6, wi7, wi8
 
-                        xij = shufflevector(vs1234_m1, vs5678_m1, Val{mx})  # xi1, xi2, xi3, xi4, xi5, xi6, xi7, xi8
-                        yij = shufflevector(vs1234_m1, vs5678_m1, Val{my})  # yi1, yi2, yi3, yi4, yi5, yi6, yi7, yi8
-                        zij = shufflevector(vs1234_m2, vs5678_m2, Val{mx})  # zi1, zi2, zi3, zi4, zi5, zi6, zi7, zi8
+                        xij = shufflevector(vs1234_m1, vs5678_m1, Val(mx))  # xi1, xi2, xi3, xi4, xi5, xi6, xi7, xi8
+                        yij = shufflevector(vs1234_m1, vs5678_m1, Val(my))  # yi1, yi2, yi3, yi4, yi5, yi6, yi7, yi8
+                        zij = shufflevector(vs1234_m2, vs5678_m2, Val(mx))  # zi1, zi2, zi3, zi4, zi5, zi6, zi7, zi8
                     end
                 end)
     
                 dij_sq = xij*xij + yij*yij + zij*zij
                 mask = dij_sq <= cutsq
-                !any(mask) && continue
+                !any(mask) && begin
+                    if j+N <= natoms
+                        j += N # Do the next N atoms
+                        continue
+                    else
+                        break
+                    end
+                end
     
                 ϵm = ϵ[mlane, mask]
     
@@ -137,7 +144,6 @@ using SIMD
                 # if j+N <= natoms && j != i+1
                 if j+N <= natoms
                     j += N # Do the next N atoms
-                    # println("$i vs [")
                 else
                     break
                 end
@@ -294,31 +300,31 @@ end # generated function
                 
                 $(if N==4
                     quote
-                        vs12_m1 = shufflevector(vi_1, vi_2, Val{m1})        # xi1, xi2, yi1, yi2
-                        vs34_m1 = shufflevector(vi_3, vi_4, Val{m1})        # xi3, xi4, yi3, yi4
-                        vs12_m2 = shufflevector(vi_1, vi_2, Val{m2})        # zi1, zi2, ?i1, ?i2
-                        vs34_m2 = shufflevector(vi_3, vi_4, Val{m2})        # zi3, zi4, ?i3, ?i4
+                        vs12_m1 = shufflevector(vi_1, vi_2, Val(m1))        # xi1, xi2, yi1, yi2
+                        vs34_m1 = shufflevector(vi_3, vi_4, Val(m1))        # xi3, xi4, yi3, yi4
+                        vs12_m2 = shufflevector(vi_1, vi_2, Val(m2))        # zi1, zi2, ?i1, ?i2
+                        vs34_m2 = shufflevector(vi_3, vi_4, Val(m2))        # zi3, zi4, ?i3, ?i4
                         
-                        xij = shufflevector(vs12_m1, vs34_m1, Val{mx})      # xi1, xi2, xi3, xi4
-                        yij = shufflevector(vs12_m1, vs34_m1, Val{my})      # yi1, yi2, yi3, yi4
-                        zij = shufflevector(vs12_m2, vs34_m2, Val{mx})      # zi1, zi2, zi3, zi4
+                        xij = shufflevector(vs12_m1, vs34_m1, Val(mx))      # xi1, xi2, xi3, xi4
+                        yij = shufflevector(vs12_m1, vs34_m1, Val(my))      # yi1, yi2, yi3, yi4
+                        zij = shufflevector(vs12_m2, vs34_m2, Val(mx))      # zi1, zi2, zi3, zi4
                     end
                 else
                     quote
-                        vi12 = shufflevector(vi_1, vi_2, Val{mj})           # xi1, yi1, zi1, wi1, xi2, yi2, zi2, wi2
-                        vi34 = shufflevector(vi_3, vi_4, Val{mj})           # xi3, yi3, zi3, wi3, xi4, yi4, zi4, wi4
-                        vi56 = shufflevector(vi_5, vi_6, Val{mj})           # xi5, yi5, zi5, wi5, xi6, yi6, zi6, wi6
-                        vi78 = shufflevector(vi_7, vi_8, Val{mj})           # xi7, yi7, zi7, wi7, xi8, yi8, zi8, wi8
+                        vi12 = shufflevector(vi_1, vi_2, Val(mj))           # xi1, yi1, zi1, wi1, xi2, yi2, zi2, wi2
+                        vi34 = shufflevector(vi_3, vi_4, Val(mj))           # xi3, yi3, zi3, wi3, xi4, yi4, zi4, wi4
+                        vi56 = shufflevector(vi_5, vi_6, Val(mj))           # xi5, yi5, zi5, wi5, xi6, yi6, zi6, wi6
+                        vi78 = shufflevector(vi_7, vi_8, Val(mj))           # xi7, yi7, zi7, wi7, xi8, yi8, zi8, wi8
                     
 
-                        vs1234_m1 = shufflevector(vi12, vi34, Val{m1})      # xi1, xi2, xi3, xi4, yi1, yi2, yi3, yi4
-                        vs5678_m1 = shufflevector(vi56, vi78, Val{m1})      # xi5, xi6, xi7, xi8, yi5, yi6, yi7, yi8
-                        vs1234_m2 = shufflevector(vi12, vi34, Val{m2})      # zi1, zi2, zi3, zi4, wi1, wi2, wi3, wi4
-                        vs5678_m2 = shufflevector(vi56, vi78, Val{m2})      # zi5, zi6, zi7, zi8, wi5, wi6, wi7, wi8
+                        vs1234_m1 = shufflevector(vi12, vi34, Val(m1))      # xi1, xi2, xi3, xi4, yi1, yi2, yi3, yi4
+                        vs5678_m1 = shufflevector(vi56, vi78, Val(m1))      # xi5, xi6, xi7, xi8, yi5, yi6, yi7, yi8
+                        vs1234_m2 = shufflevector(vi12, vi34, Val(m2))      # zi1, zi2, zi3, zi4, wi1, wi2, wi3, wi4
+                        vs5678_m2 = shufflevector(vi56, vi78, Val(m2))      # zi5, zi6, zi7, zi8, wi5, wi6, wi7, wi8
 
-                        xij = shufflevector(vs1234_m1, vs5678_m1, Val{mx})  # xi1, xi2, xi3, xi4, xi5, xi6, xi7, xi8
-                        yij = shufflevector(vs1234_m1, vs5678_m1, Val{my})  # yi1, yi2, yi3, yi4, yi5, yi6, yi7, yi8
-                        zij = shufflevector(vs1234_m2, vs5678_m2, Val{mx})  # zi1, zi2, zi3, zi4, zi5, zi6, zi7, zi8
+                        xij = shufflevector(vs1234_m1, vs5678_m1, Val(mx))  # xi1, xi2, xi3, xi4, xi5, xi6, xi7, xi8
+                        yij = shufflevector(vs1234_m1, vs5678_m1, Val(my))  # yi1, yi2, yi3, yi4, yi5, yi6, yi7, yi8
+                        zij = shufflevector(vs1234_m2, vs5678_m2, Val(mx))  # zi1, zi2, zi3, zi4, zi5, zi6, zi7, zi8
                     end
                 end)
     
@@ -470,30 +476,30 @@ end # generated function
                 
                 $(if N==4
                     quote
-                        vs12_m1 = shufflevector(vi_1, vi_2, Val{m1})        # xi1, xi2, yi1, yi2
-                        vs34_m1 = shufflevector(vi_3, vi_4, Val{m1})        # xi3, xi4, yi3, yi4
-                        vs12_m2 = shufflevector(vi_1, vi_2, Val{m2})        # zi1, zi2, ?i1, ?i2
-                        vs34_m2 = shufflevector(vi_3, vi_4, Val{m2})        # zi3, zi4, ?i3, ?i4
+                        vs12_m1 = shufflevector(vi_1, vi_2, Val(m1))        # xi1, xi2, yi1, yi2
+                        vs34_m1 = shufflevector(vi_3, vi_4, Val(m1))        # xi3, xi4, yi3, yi4
+                        vs12_m2 = shufflevector(vi_1, vi_2, Val(m2))        # zi1, zi2, ?i1, ?i2
+                        vs34_m2 = shufflevector(vi_3, vi_4, Val(m2))        # zi3, zi4, ?i3, ?i4
                         
-                        xij = shufflevector(vs12_m1, vs34_m1, Val{mx})      # xi1, xi2, xi3, xi4
-                        yij = shufflevector(vs12_m1, vs34_m1, Val{my})      # yi1, yi2, yi3, yi4
-                        zij = shufflevector(vs12_m2, vs34_m2, Val{mx})      # zi1, zi2, zi3, zi4
+                        xij = shufflevector(vs12_m1, vs34_m1, Val(mx))      # xi1, xi2, xi3, xi4
+                        yij = shufflevector(vs12_m1, vs34_m1, Val(my))      # yi1, yi2, yi3, yi4
+                        zij = shufflevector(vs12_m2, vs34_m2, Val(mx))      # zi1, zi2, zi3, zi4
                     end
                 else
                     quote
-                        vi12 = shufflevector(vi_1, vi_2, Val{mj})           # xi1, yi1, zi1, wi1, xi2, yi2, zi2, wi2
-                        vi34 = shufflevector(vi_3, vi_4, Val{mj})           # xi3, yi3, zi3, wi3, xi4, yi4, zi4, wi4
-                        vi56 = shufflevector(vi_5, vi_6, Val{mj})           # xi5, yi5, zi5, wi5, xi6, yi6, zi6, wi6
-                        vi78 = shufflevector(vi_7, vi_8, Val{mj})           # xi7, yi7, zi7, wi7, xi8, yi8, zi8, wi8
+                        vi12 = shufflevector(vi_1, vi_2, Val(mj))           # xi1, yi1, zi1, wi1, xi2, yi2, zi2, wi2
+                        vi34 = shufflevector(vi_3, vi_4, Val(mj))           # xi3, yi3, zi3, wi3, xi4, yi4, zi4, wi4
+                        vi56 = shufflevector(vi_5, vi_6, Val(mj))           # xi5, yi5, zi5, wi5, xi6, yi6, zi6, wi6
+                        vi78 = shufflevector(vi_7, vi_8, Val(mj))           # xi7, yi7, zi7, wi7, xi8, yi8, zi8, wi8
 
-                        vs1234_m1 = shufflevector(vi12, vi34, Val{m1})      # xi1, xi2, xi3, xi4, yi1, yi2, yi3, yi4
-                        vs5678_m1 = shufflevector(vi56, vi78, Val{m1})      # xi5, xi6, xi7, xi8, yi5, yi6, yi7, yi8
-                        vs1234_m2 = shufflevector(vi12, vi34, Val{m1})      # zi1, zi2, zi3, zi4, wi1, wi2, wi3, wi4
-                        vs5678_m2 = shufflevector(vi56, vi78, Val{m1})      # zi5, zi6, zi7, zi8, wi5, wi6, wi7, wi8
+                        vs1234_m1 = shufflevector(vi12, vi34, Val(m1))      # xi1, xi2, xi3, xi4, yi1, yi2, yi3, yi4
+                        vs5678_m1 = shufflevector(vi56, vi78, Val(m1))      # xi5, xi6, xi7, xi8, yi5, yi6, yi7, yi8
+                        vs1234_m2 = shufflevector(vi12, vi34, Val(m1))      # zi1, zi2, zi3, zi4, wi1, wi2, wi3, wi4
+                        vs5678_m2 = shufflevector(vi56, vi78, Val(m1))      # zi5, zi6, zi7, zi8, wi5, wi6, wi7, wi8
 
-                        xij = shufflevector(vs1234_m1, vs5678_m1, Val{mx})  # xi1, xi2, xi3, xi4, xi5, xi6, xi7, xi8
-                        yij = shufflevector(vs1234_m1, vs5678_m1, Val{my})  # yi1, yi2, yi3, yi4, yi5, yi6, yi7, yi8
-                        zij = shufflevector(vs1234_m2, vs5678_m2, Val{mx})  # zi1, zi2, zi3, zi4, zi5, zi6, zi7, zi8
+                        xij = shufflevector(vs1234_m1, vs5678_m1, Val(mx))  # xi1, xi2, xi3, xi4, xi5, xi6, xi7, xi8
+                        yij = shufflevector(vs1234_m1, vs5678_m1, Val(my))  # yi1, yi2, yi3, yi4, yi5, yi6, yi7, yi8
+                        zij = shufflevector(vs1234_m2, vs5678_m2, Val(mx))  # zi1, zi2, zi3, zi4, zi5, zi6, zi7, zi8
                     end
                 end)
     

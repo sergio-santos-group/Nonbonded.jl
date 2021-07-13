@@ -3,8 +3,7 @@ using CUDAdrv, CUDAnative, CuArrays
 # https://stackoverflow.com/questions/5611905/n-body-cuda-optimization
 # https://devblogs.nvidia.com/even-easier-introduction-cuda/
 
-
-function nb_kernel(
+function kernel(
     xyz::CuDeviceVector{T},
     forces::CuDeviceVector{T},
     energy::CuDeviceVector{T},
@@ -23,7 +22,6 @@ function nb_kernel(
 
         shmem = @cuDynamicSharedMem(T, 3*blocksize) # ?
         
-        # ii = tid<<2 - 3
         ii = tid<<2 - (2 + tid) # AoS
         @cuprint("$ii / $(length(xyz)) @ thread $(threadIdx().x)\n")
         
@@ -37,7 +35,6 @@ function nb_kernel(
         zi = xyz[ii+2]
 
         for i=1:blocksize:N
-            # k = (i+id)<<2 - 3
             k = ((i+id)<<1) + (i+id-2) # AoS
             @cuprint("$ii <-> $k / $(length(xyz)) @ thread $(threadIdx().x)\n")
             if (i+id) <= N
@@ -78,32 +75,26 @@ function nb_kernel(
     end
 
     return nothing
-
 end
 
 
 function cuda(state::State{F, T}, cutoff::T) where {F <: AbstractMatrix, T <: AbstractFloat}
-    N = state.n
     
+    N = state.n
     x_gpu = CuArray(view(state.coords.values, :))
     f_gpu = similar(x_gpu)
     e_gpu = CuArray{T}(undef, N)
     
-    dev = device()
     total_threads = min(N, 512)
-    println("\n Total threads: $total_threads")
-    threads = (total_threads, )
-    blocks = ceil.(Int, N ./ threads)
-    println(" Blocks: $blocks")
+    threads       = (total_threads, )
+    blocks        = ceil.(Int, N ./ threads)
 
     # calculate size of dynamic shared memory
     shmem = 3 * sum(threads) * sizeof(T)
-    println(" Shared memory $shmem bytes")
     cutsq = convert(T, cutoff*cutoff)
 
-    @cuda blocks=blocks threads=threads shmem=shmem nb_kernel(x_gpu, f_gpu, e_gpu, N, cutsq)
+    @cuda blocks=blocks threads=threads shmem=shmem kernel(x_gpu, f_gpu, e_gpu, N, cutsq)
 
     e = sum(e_gpu)
     return e
-
 end
