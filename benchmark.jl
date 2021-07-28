@@ -92,7 +92,7 @@ t5 = trial(:(simd(state_aos, vlist, LennardJones.NOFORCES, Vec{4, T})), "SIMD_4 
 t6 = trial(:(simd(state_soa, vlist, LennardJones.NOFORCES, Vec{4, T})), "SIMD_4 - Verlet - SoA")
 t7 = trial(:(simd(state_aos, vlist, LennardJones.NOFORCES, Vec{8, T})), "SIMD_8 - Verlet - AoS")
 t8 = trial(:(simd(state_soa, vlist, LennardJones.NOFORCES, Vec{8, T})), "SIMD_8 - Verlet - SoA")
-t9 = trial(:(cuda(state_soa)), "CUDA - SoA")
+t9 = trial(:(cuda(state_aos, cut_off)), "CUDA - SoA")
 
 push!(results, (n_atoms, m_atoms, t1, t2, t3, t4, t5, t6, t7, t8, t9))
 

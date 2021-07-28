@@ -1,9 +1,6 @@
-using CUDAdrv, CUDAnative, CuArrays
+using CUDA
 
-# https://stackoverflow.com/questions/5611905/n-body-cuda-optimization
-# https://devblogs.nvidia.com/even-easier-introduction-cuda/
-
-function kernel(
+function cuda_kernel(
     xyz::CuDeviceVector{T},
     forces::CuDeviceVector{T},
     energy::CuDeviceVector{T},
@@ -11,19 +8,16 @@ function kernel(
     cutsq::T) where {T<:AbstractFloat}
     
     blocksize = blockDim().x
-    @cuprint(" Block size: $blocksize\n")
 
     # thread ID
     tid = (blockIdx().x-1) * blocksize + threadIdx().x
-    @cuprint(" Thread ID: $tid\n")
     
     if tid <= N
         id = threadIdx().x
 
-        shmem = @cuDynamicSharedMem(T, 3*blocksize) # ?
+        shmem = @cuDynamicSharedMem(T, 3*blocksize)
         
         ii = tid<<2 - (2 + tid) # AoS
-        @cuprint("$ii / $(length(xyz)) @ thread $(threadIdx().x)\n")
         
         e  = T(0)
         fx = T(0)
@@ -36,7 +30,6 @@ function kernel(
 
         for i=1:blocksize:N
             k = ((i+id)<<1) + (i+id-2) # AoS
-            @cuprint("$ii <-> $k / $(length(xyz)) @ thread $(threadIdx().x)\n")
             if (i+id) <= N
                 shmem[(id-1)*3+1] = xyz[k]
                 shmem[(id-1)*3+2] = xyz[k+1]
@@ -93,7 +86,7 @@ function cuda(state::State{F, T}, cutoff::T) where {F <: AbstractMatrix, T <: Ab
     shmem = 3 * sum(threads) * sizeof(T)
     cutsq = convert(T, cutoff*cutoff)
 
-    @cuda blocks=blocks threads=threads shmem=shmem kernel(x_gpu, f_gpu, e_gpu, N, cutsq)
+    @cuda blocks=blocks threads=threads shmem=shmem cuda_kernel(x_gpu, f_gpu, e_gpu, N, cutsq)
 
     e = sum(e_gpu)
     return e

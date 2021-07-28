@@ -11,6 +11,6 @@ include("models.jl")      # Allows particle model generation and printing
 include("verlet_list.jl") # Allows the usage of Verlet lists
 include("serial.jl")      # Calculation of energy and forces with serial methods
 include("simd.jl")        # Calculation of energy and forces with SIMD methods
-include("cuda2.jl")        # Calculation of energy and forces with CUDA methods      
+include("cuda.jl")        # Calculation of energy and forces with CUDA methods      
 
 end # module

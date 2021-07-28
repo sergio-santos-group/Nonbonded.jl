@@ -4,7 +4,6 @@ using Base.Cartesian
 @generated function simd(state::State{F, T}, cutoff::T, ::Type{Val{Forces}}, ::Type{Vec{N,T}}) where {Forces, N, T<:AbstractFloat, F <: AbstractMatrix}
 
     @assert isa(Forces, Bool) "Forces must be a boolean"
-    # @assert T==Float32 "only Float32 is currently supported"
     @assert N ∈ (4,8) "only 4 or 8 wide vectors are allowed"
 
     quote
@@ -141,7 +140,6 @@ using Base.Cartesian
                     end
                 end)
 
-                # if j+N <= natoms && j != i+1
                 if j+N <= natoms
                     j += N # Do the next N atoms
                 else
@@ -197,7 +195,6 @@ end # generated function
 @generated function simd(state::State{F, T}, vlist::VerletList, ::Type{Val{Forces}}, ::Type{Vec{N,T}}) where {Forces, N, T<:AbstractFloat, F <: AbstractMatrix}
 
     @assert isa(Forces, Bool) "Forces must be a boolean"
-    # @assert T==Float32 "only Float32 is currently supported"
     @assert N ∈ (4,8) "only 4 or 8 wide Float32 vectors are allowed"
 
     quote
@@ -253,9 +250,6 @@ end # generated function
                 :(fi = Vec{4,T}(0))
             end)
     
-            # META PROGRAMMING QUESTION !
-
-            # if typeof(state.coords) == AoSMatrix{Float32}
             $(if F == AoS
                 quote
                     # Atom number to atom position conversion
@@ -270,17 +264,10 @@ end # generated function
                 end
             end)
 
-            # To remove
-            # i1 = (i<<1) + (i-2)
-            # vi = vload(Vec{4,T}, coords, i1) # Load XYZ (consecutive)
-
-    
             while ptr+(N-1) <= ptr_stop
                 j = ptr
                 ptr += N
                 
-                # META PROGRAMMING QUESTION !
-
                 $(if F == AoS
                     quote
                         @nexprs $N u ->  j_u = vlist.list[j+(u-1)]<<2 - (2 + vlist.list[j+(u-1)])
@@ -289,14 +276,9 @@ end # generated function
                 else
                     quote
                         @nexprs $N u ->  js_u = Vec((vlist.list[j+(u-1)], vlist.list[j+(u-1)]+natoms, vlist.list[j+(u-1)]+2*natoms, vlist.list[j+(u-1)]))
-                        @nexprs $N u -> vi_u = vgather(coords, js_u) - vi    # xi1, yi1, zi1, wi1
+                        @nexprs $N u -> vi_u  = vgather(coords, js_u) - vi    # xi1, yi1, zi1, wi1
                     end
                 end)
-
-                # To remove
-                # @nexprs $N u ->  j_u = vlist.list[j+(u-1)]<<2 - (2 + vlist.list[j+(u-1)])
-                # @nexprs $N u -> vi_u = vload(Vec{4,T}, coords, j_u) - vi    # xi1, yi1, zi1, wi1
-
                 
                 $(if N==4
                     quote
@@ -357,8 +339,6 @@ end # generated function
             # do remaining pairs
             for j = ptr:ptr_stop
 
-                # META PROGRAMMING QUESTION !
-
                 $(if F == AoS
                     quote
                         j1 = vlist.list[j]<<2 - (2 + vlist.list[j])
@@ -370,10 +350,6 @@ end # generated function
                         vi1 = (vgather(coords, Vec((j1, j1+natoms, j1+2*natoms, j1))) - vi) * remaining_mask
                     end
                 end)
-
-                # To remove
-                # j1 = vlist.list[j]<<2 - (2 + vlist.list[j])
-                # vi1 = (vload(Vec{4,T}, coords, j1) - vi) * remaining_mask
 
                 sdij_sq = sum(vi1*vi1)
                 (sdij_sq > cutsq) && continue

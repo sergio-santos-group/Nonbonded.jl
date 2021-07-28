@@ -1,7 +1,30 @@
 using Base.Cartesian
+using LinearAlgebra 
+
+function non_optimized(xyz, forces)
+    natoms = size(xyz, 2)
+    e      = 0.0
+    s      = 1.0
+
+    for i = 1:natoms
+        for j = 1:natoms
+            if i == j
+                continue
+            end
+            r = xyz[:,j] - xyz[:,i]
+            d = norm(r)
+            e += (s/d)^12 - (s/d)^6
+            f = 12*s^12/d^13-6*s^6/d^7
+            forces[:, i] += f
+        end
+    end
+
+    return e
+end
+
 
 """
-    naive(state::State{T}, cutoff::T, ::do_forces::Bool) where {DoF, T <: AbstractFloat}
+    optimized(state::State{T}, cutoff::T, ::do_forces::Bool) where {DoF, T <: AbstractFloat}
 
         Calculates Lennard Jones energy of a State in a basic and inneficient
         way. If 'do_forces' is set to True, also calculate and update forces.
@@ -10,17 +33,17 @@ using Base.Cartesian
             
 	Example:
 	
-        naive(state, 1.2, true)
+        naive_optimized(state, 1.2, true)
 """
-function naive(state::State{F, T}, cutoff::T, do_forces::Bool) where {F <: AbstractMatrix, T <: AbstractFloat}
+function optimized(state::State{F, T}, cutoff::T, do_forces::Bool) where {F <: AbstractMatrix, T <: AbstractFloat}
     coords    = state.coords
     forces    = state.forces
     energy    = T(0)
     cutoff_sq = cutoff^2
     for i in 1:(length(coords) - 1)
         if do_forces
-            forces[i] = zeros(3, 1) # ERROR
-            fi = zeros(3, 1) # ERROR
+            forces[i] = zeros(3, 1)
+            fi = zeros(3, 1)
         end
         for j in (i+1):length(coords)
             rij = coords[i] - coords[j]

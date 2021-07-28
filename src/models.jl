@@ -70,7 +70,6 @@ function calculate_n_atoms(rep::Vector{Int64}, type::LATTICE.TYPE)::Int64
     return n_atoms
 end
 
-
 """
     generate_cubic_lattice(sizes::Float64, rep::Int64, type::LATTICE.TYPE)
 
@@ -94,7 +93,6 @@ function generate_cubic_lattice(sizes::Float64, rep::Int64, type::LATTICE.TYPE):
     xyz = generate_lattice([sizes, sizes, sizes], [rep, rep, rep], type)
     return xyz
 end
-
 
 """
     generate_lattice(sizes::Vector{Float64, 1}, rep::Vector{Int64, 1}, type::LATTICE.TYPE)
@@ -145,7 +143,6 @@ function generate_lattice(sizes::Vector{Float64}, rep::Vector{Int64},
 
     return xyz
 end
-
 
 """
     print_xyz(coords::Matrix{T}, [io::Union{String, Base.TTY} = Base.stdout]) where {T <: AbstractFloat}
