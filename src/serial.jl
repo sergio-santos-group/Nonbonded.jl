@@ -15,7 +15,7 @@ function non_optimized(xyz, forces)
             d = norm(r)
             e += (s/d)^12 - (s/d)^6
             f = 12*s^12/d^13-6*s^6/d^7
-            forces[:, i] += f
+            forces[:, i] .+= f
         end
     end
 
@@ -113,6 +113,7 @@ end
                 # calculate the squared distance. Skip
                 # if greater than cutoff
                 dij_sq = @reduce 3 (+) u -> rij_u*rij_u
+                # println("$i - $j = $(sqrt(dij_sq))")
                 (dij_sq > cutsq) && continue
                 
                 # LJ potential

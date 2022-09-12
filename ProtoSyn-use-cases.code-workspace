@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../ProtoSyn-use-cases"
+		},
+		{
+			"path": "../../ProtoSyn.jl"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}

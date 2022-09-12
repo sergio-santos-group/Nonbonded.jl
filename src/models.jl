@@ -88,9 +88,9 @@ end
 
         generate_cubic_lattice(10.0, 10, LATTICE.primitive)
 """
-function generate_cubic_lattice(sizes::Float64, rep::Int64, type::LATTICE.TYPE)::Matrix{Float64}
+function generate_cubic_lattice(rep::Int64, type::LATTICE.TYPE)::Matrix{Float64}
         
-    xyz = generate_lattice([sizes, sizes, sizes], [rep, rep, rep], type)
+    xyz = generate_lattice([rep, rep, rep], type)
     return xyz
 end
 
@@ -111,31 +111,28 @@ end
 
         generate_lattice([10.0, 10.0, 5.0], [10, 10, 5], LATTICE.primitive)
 """
-function generate_lattice(sizes::Vector{Float64}, rep::Vector{Int64},
-    type::LATTICE.TYPE)::Matrix{Float64}
+function generate_lattice(rep::Vector{Int64}, type::LATTICE.TYPE)::Matrix{Float64}
 
-    @assert size(sizes) == (3,) "sizes argument must be a 3x1 Array{Float64, 1}"
     @assert size(rep) == (3,) "rep argument must be a 3x1 Array{Int64, 1}"
 
     # Generate the template
-    cs = (sizes./rep)
+    cs = [2.3, 2.3, 2.3]
     template = generate_template(cs, type)
-
+ 
     # Create empty list of atoms
-    n_atoms  = calculate_n_atoms(rep, type)
+    # n_atoms  = calculate_n_atoms(rep, type)
+    n_atoms = maximum(size(template)) * rep[1] * rep[2] * rep[3]
     xyz = zeros(3, n_atoms)
 
     # Fill xyz with repetitions of template
     c = 1
-    for i in 0:rep[1]
-        for j in 0:rep[2]
-            for k in 0:rep[3]
+    for i in 0:(rep[1] - 1)
+        for j in 0:(rep[2] - 1)
+            for k in 0:(rep[3] - 1)
                 for index in 1:size(template, 1)
                     new_pos = template[index, :] .+ [i*cs[1], j*cs[2], k*cs[3]]
-                    if all(new_pos .<= sizes)
-                        xyz[1:3, c] .= new_pos
-                        c +=1
-                    end
+                    xyz[1:3, c] .= new_pos
+                    c +=1
                 end
             end
         end

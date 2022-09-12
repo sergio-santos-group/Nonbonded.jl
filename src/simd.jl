@@ -148,7 +148,6 @@ using Base.Cartesian
                 #endregion FORCE_SECTION
             end # while ptr
             
-
             # do remaining pairs
             for _j = (j+1):natoms
                 $(if F == AoS

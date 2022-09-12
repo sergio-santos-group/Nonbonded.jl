@@ -49,10 +49,10 @@ mutable struct State{F <: AbstractMatrix, T <: AbstractFloat}
             error("Size of coords does not match size of forces")
         end
         if argmax(collect(size(coords))) == 2
-            println("Creating state in AoS format")
+            # println("Creating state in AoS format")
             new{AoS, T}(max(size(coords)...), StateMatrix{AoS, T}(coords), StateMatrix{AoS, T}(forces))
         elseif argmax(collect(size(coords))) == 1
-            println("Creating state in SoA format")
+            # println("Creating state in SoA format")
             new{SoA, T}(max(size(coords)...), StateMatrix{SoA, T}(coords), StateMatrix{SoA, T}(forces))
         else
             error("Could not infer the AoS or SoA format of input data.")

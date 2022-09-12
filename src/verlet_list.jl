@@ -81,46 +81,65 @@ end
 
         update_serial!(vl, xyz)
 """
-function update_serial!(vlist::VerletList, coords::Matrix{T}) where {T<:AbstractFloat}
+@generated function update_serial!(vlist::VerletList, state::State{F, T}) where {T <: AbstractFloat, F <: AbstractMatrix}
     
-    @assert vlist.size == max(size(coords)...) "incompatible sizes"
-    # println(size(coords))
+    quote
+        coords = state.coords.values
+        @assert vlist.size == max(size(coords)...) "incompatible sizes"
+        # println(size(coords))
 
-    # cutoff squared
-    cutsq = convert(T, vlist.cutoff*vlist.cutoff)
-    
-    offset = 1
-    natoms = vlist.size
-    @inbounds for i = 1:natoms
+        # cutoff squared
+        cutsq = convert(T, vlist.cutoff*vlist.cutoff)
+        
+        offset = 1
+        natoms = vlist.size
+        @inbounds for i = 1:natoms
 
-        vlist.offset[i] = offset
-        # @nexprs 3 u -> xi_u = coords[i,u]
-        @nexprs 3 u -> xi_u = coords[i, u]
+            vlist.offset[i] = offset
+            # @nexprs 3 u -> xi_u = coords[i,u]
+            $(if F == AoS
+                quote
+                    @nexprs 3 u -> xi_u = coords[u, i]
+                end
+            else
+                quote
+                    @nexprs 3 u -> xi_u = coords[i, u]
+                end
+            end)
 
-        for j = (i+1):natoms
+            for j = (i+1):natoms
 
-            @nexprs 3 u -> vij_u = coords[j, u] - xi_u
-            # @nexprs 3 u -> vij_u = coords[j,u] - xi_u
-            dij_sq = @reduce 3 (+) u -> vij_u*vij_u
-            
-            if dij_sq < cutsq
-                vlist.list[offset] = j
-                offset += 1
-                if offset == vlist.capacity
-                    resize!(vlist, vlist.capacity + natoms)
+                # @nexprs 3 u -> vij_u = coords[j, u] - xi_u
+                $(if F == AoS
+                    quote
+                        @nexprs 3 u -> vij_u = coords[u, j] - xi_u
+                    end
+                else
+                    quote
+                        @nexprs 3 u -> vij_u = coords[j, u] - xi_u
+                    end
+                end)
+                dij_sq = @reduce 3 (+) u -> vij_u*vij_u
+                
+                if dij_sq < cutsq
+                    vlist.list[offset] = j
+                    offset += 1
+                    if offset == vlist.capacity
+                        resize!(vlist, vlist.capacity + natoms)
+                    end
                 end
             end
-        end
 
-        vlist.list[offset] = -1
-        offset += 1
-        if (i < natoms) && (offset == vlist.capacity)
-            resize!(vlist, vlist.capacity + natoms)
-        end
+            vlist.list[offset] = -1
+            offset += 1
+            if (i < natoms) && (offset == vlist.capacity)
+                resize!(vlist, vlist.capacity + natoms)
+            end
 
+        end
+        
+        vlist
     end
-    
-    vlist
 end
 
 # TODO: update_simd4!
