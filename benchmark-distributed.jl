@@ -12,8 +12,8 @@ printstyled("> Starting distributed simulation.\n"; color = :yellow)
 # `machine_spec` is a string of the form [user@]host[:port] [bind_addr[:port]]
 
 machines = Vector{Tuple{String, Int}}([ # 45/68 workers
-    ("jpereira@192.168.179.59", 3),     # Feynman (Max: 8 )
-    ("jpereira@192.168.179.86", 7),     # Buteo   (Max: 16) # For some reason Buteo allocates GPU memory...
+    ("jpereira@192.168.179.59", 6),     # Feynman (Max: 8 )
+    ("jpereira@192.168.179.86", 12),     # Buteo   (Max: 16) # For some reason Buteo allocates GPU memory...
     # ("jpereira@192.168.179.34", 40),    # Warbler (Max: 40)
 ])
 
@@ -43,15 +43,15 @@ printstyled("> Setting up simulation environment.\n"; color = :yellow)
 @everywhere begin  
     
     T            = Float64
-    xyz_aos      = generate_cubic_lattice(100.0, 2, LATTICE.face_centered) # This is in AoS
+    xyz_aos      = generate_cubic_lattice(7, LATTICE.face_centered) # This is in AoS
     xyz_aos      = convert(Matrix{T}, xyz_aos)
     n_atoms      = max(size(xyz_aos)...)
     println("N atoms: $n_atoms")
     state_aos    = State(xyz_aos)
     vlist        = VerletList(n_atoms)
-    vlist.cutoff = T(10.0)
+    vlist.cutoff = T(21.0)
     vlist        = update_serial!(vlist, state_aos.coords.values)
-    N_steps      = 100
+    N_steps      = 1_000
 
     function start_simulation(job_cards::RemoteChannel, results::RemoteChannel)
         println("Starting simulation on worker $(myid()) - $(gethostname()) ...")

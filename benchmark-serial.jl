@@ -13,16 +13,16 @@ printstyled("> Setting up simulation environment.\n"; color = :yellow)
     
 N = 7
 T            = Float64
-xyz_aos      = generate_cubic_lattice(100.0, N, LATTICE.face_centered) # This is in AoS
+xyz_aos      = generate_cubic_lattice(N, LATTICE.face_centered) # This is in AoS
 xyz_aos      = convert(Matrix{T}, xyz_aos)
 n_atoms      = max(size(xyz_aos)...)
 println("N atoms: $n_atoms")
 state_aos    = State(xyz_aos)
 vlist        = VerletList(n_atoms)
-vlist.cutoff = T(10.0)
+vlist.cutoff = T(21.0)
 vlist        = update_serial!(vlist, state_aos)
-N_steps      = 1_000
-N            = 45 # Number of replicas
+N_steps      = 3_000
+N            = 80 # Number of replicas
 
 for j in 1:N
     println(" Consuming job $j on single worker")
