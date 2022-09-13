@@ -50,7 +50,7 @@ printstyled("> Setting up simulation environment.\n"; color = :yellow)
     state_aos    = State(xyz_aos)
     vlist        = VerletList(n_atoms)
     vlist.cutoff = T(21.0)
-    vlist        = update_serial!(vlist, state_aos.coords.values)
+    vlist        = update_serial!(vlist, state_aos)
     N_steps      = 1_000
 
     function start_simulation(job_cards::RemoteChannel, results::RemoteChannel)
